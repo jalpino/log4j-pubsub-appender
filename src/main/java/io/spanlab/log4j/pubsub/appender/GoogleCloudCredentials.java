@@ -16,21 +16,21 @@
 
 package io.spanlab.log4j.pubsub.appender;
 
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.logging.log4j.core.config.Node;
-import org.apache.logging.log4j.core.config.plugins.Plugin;
-import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
-import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
+
+import org.apache.logging.log4j.core.config.Node;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.common.annotations.VisibleForTesting;
 
 @Plugin(name = "GoogleCloudCredentials", category = Node.CATEGORY, printObject = true)
 public class GoogleCloudCredentials {
@@ -40,7 +40,7 @@ public class GoogleCloudCredentials {
         this.serviceAccountJsonFile = serviceAccountJsonFile;
     }
 
-    public Credential getCredential(final HttpTransport transport,
+    public GoogleCredential getCredential(final HttpTransport transport,
                                     final JacksonFactory jacksonFactory,
                                     final Collection<String> serviceAccountScopes)
             throws GeneralSecurityException, IOException {

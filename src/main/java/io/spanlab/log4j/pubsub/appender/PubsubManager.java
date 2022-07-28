@@ -16,6 +16,18 @@
 
 package io.spanlab.log4j.pubsub.appender;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
+import java.util.List;
+
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractManager;
+import org.apache.logging.log4j.core.appender.AppenderLoggingException;
+import org.apache.logging.log4j.core.appender.ManagerFactory;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
@@ -27,17 +39,6 @@ import com.google.api.services.pubsub.model.PublishRequest;
 import com.google.api.services.pubsub.model.PubsubMessage;
 import com.google.api.services.pubsub.model.Topic;
 import com.google.common.annotations.VisibleForTesting;
-
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.AbstractManager;
-import org.apache.logging.log4j.core.appender.AppenderLoggingException;
-import org.apache.logging.log4j.core.appender.ManagerFactory;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.security.GeneralSecurityException;
-import java.util.List;
 
 public class PubsubManager extends AbstractManager {
     private static final String APPLICATION_NAME = "Log4j-pubsub-appender";
@@ -60,12 +61,15 @@ public class PubsubManager extends AbstractManager {
 //        System.out.println("***********************************");
 //        System.out.println("INSIDE PUBSUB APPENDER");
 //        System.out.println("***********************************");
-
-        fullyDefinedTopicName = createFullyDefinedTopicName(googleCloudProjectId, topic);
+        
+        final JacksonFactory jacksonFactory = JacksonFactory.getDefaultInstance();
+    	final GoogleCredential creds = googleCloudCredentials.getCredential(transport, jacksonFactory, PubsubScopes.all());
+        
+        fullyDefinedTopicName = createFullyDefinedTopicName(creds, googleCloudProjectId, topic);
 
         this.pubsubClient = createPubsubClient(transport,
-                googleCloudCredentials,
-                maxRetryTimeMillis);
+			        		creds,
+			                maxRetryTimeMillis);
 
 //        System.out.println("***********************************");
 //        System.out.println("INSIDE PUBSUB APPENDER  projectId:" + googleCloudProjectId);
@@ -76,9 +80,15 @@ public class PubsubManager extends AbstractManager {
         }
     }
 
-    private static String createFullyDefinedTopicName(final String googleCloudProjectId,
+    private static String createFullyDefinedTopicName(final GoogleCredential googleCloudCredentials,
+    												  final String googleCloudProjectId,
                                                       final String topic) {
-        return "projects/" + googleCloudProjectId + "/topics/" + topic;
+    	String projectId = googleCloudProjectId;
+    	if( null == projectId || projectId.trim().isEmpty() ) {
+    		projectId =  googleCloudCredentials.getServiceAccountProjectId();
+    	}
+    	
+        return "projects/" + projectId + "/topics/" + topic;
     }
 
     private void createTopic() throws IOException {
@@ -169,16 +179,14 @@ public class PubsubManager extends AbstractManager {
     }
 
     private static Pubsub createPubsubClient(final HttpTransport transport,
-                                             final GoogleCloudCredentials credentials,
+                                             final GoogleCredential credentials,
                                              final int maxRetryTimeMillis)
             throws GeneralSecurityException, IOException {
         final JacksonFactory jacksonFactory = JacksonFactory.getDefaultInstance();
         return new Pubsub.Builder(transport,
                 jacksonFactory,
                 new RetryHttpInitializerWrapper(
-                        credentials.getCredential(transport,
-                                jacksonFactory,
-                                PubsubScopes.all()),
+                        credentials,
                         maxRetryTimeMillis))
                 .setApplicationName(APPLICATION_NAME)
                 .build();
